@@ -1,0 +1,16 @@
+PARSER_BEGIN(MiniParser)
+    class MiniParser {}
+PARSER_END(MiniParser)
+
+TOKEN:{<IDEN:<CHARACTER>(<CHARACTER>|<DIGIT>|"_")*>}
+TOKEN:{<#CHARACTER:["a"-"z","A"-"Z"]>}
+TOKEN:{<#DIGIT:["0"-"9"]>}
+TOKEN:{<AND:"&&">}
+TOKEN:{<LESS:"<">}
+TOKEN:{<PLUS:"+">}
+TOKEN:{<MINUS:"-">}
+TOKEN:{<TIMES:"*">}
+TOKEN:{<#OTHER:~[]>}
+TOKEN:{<#RETCH:"\r"|"\n"|"\r\n">}
+
+TOKEN:{<COMMENT:"//"(<OTHER>)*<RETCH> | "/*"(<OTHER>)*"*/">}
