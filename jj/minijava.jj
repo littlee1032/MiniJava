@@ -4,7 +4,7 @@ PARSER_END(MiniParser)
 
 TOKEN:{<IDEN:<CHARACTER>(<CHARACTER>|<DIGIT>|"_")*>}
 TOKEN:{<#CHARACTER:["a"-"z","A"-"Z"]>}
-TOKEN:{<#DIGIT:["0"-"9"]>}
+TOKEN:{<DIGIT:["0"-"9"]>}
 TOKEN:{<AND:"&&">}
 TOKEN:{<LESS:"<">}
 TOKEN:{<PLUS:"+">}
@@ -14,3 +14,85 @@ TOKEN:{<#OTHER:~[]>}
 TOKEN:{<#RETCH:"\r"|"\n"|"\r\n">}
 
 TOKEN:{<COMMENT:"//"(<OTHER>)*<RETCH> | "/*"(<OTHER>)*"*/">}
+
+void Prog():
+{}
+{MainClass() (ClassDecl())* }
+
+void MainClass():
+{}
+{"class" <IDEN> "{" "public static void main" "(String[]" <IDEN> ")" "{" Statement() "}""}"}
+
+void ClassDecl():
+{}
+{LOOKAHEAD(3) "class" <IDEN> "{"(VarDecl())* (MethodDecl())*"}"
+|"class" <IDEN> "extends" <IDEN> "{"(VarDecl())* (MethodDecl())*"}"}
+
+void VarDecl():
+{}
+{Type() <IDEN>";"}
+
+void MethodDecl():
+{}
+{"public" Type() <IDEN> "("FormalList()")" "{"(VarDecl())* (Statement())* "return" Exp()";""}"}
+
+void FormalList():
+{}
+{Type() <IDEN> (FormalRest())*}
+
+void FormalRest():
+{}
+{"," Type() <IDEN>}
+
+void Type():
+{}
+{"int []"
+|"boolean"
+|"int"
+|<IDEN>
+}
+
+void Statement():
+{}
+{"{"(Statement())*"}"
+|"if (" Exp() ")" Statement() "else" Statement()
+|"while (" Exp() ")" Statement()
+|"System.out.println (" Exp() ");"
+|<IDEN> "=" Exp() ";"
+|<IDEN>"["Exp()"] =" Exp()";"}
+
+void op():
+{}
+{<AND>
+|<LESS>
+|<PLUS>
+|<MINUS>
+|<TIMES>}
+
+void Exp():
+{}
+{<DIGIT> ExpPrime()
+|"true" ExpPrime()
+|"false" ExpPrime()
+|<IDEN> ExpPrime()
+|"this" ExpPrime()
+|"new int ["Exp()"]" ExpPrime()
+|"new" <IDEN> "()" ExpPrime()
+|"!"Exp() ExpPrime()
+|"("Exp()")" ExpPrime()}
+
+void ExpPrime():
+{}
+{op() Exp() ExpPrime()
+|"["Exp()"]" ExpPrime()
+|".length"ExpPrime()
+|"."<IDEN>"("ExpList()")"ExpPrime()
+|""}
+
+void ExpList():
+{}
+{Exp() (ExpRest())*}
+
+void ExpRest():
+{}
+{" ,"Exp()}
