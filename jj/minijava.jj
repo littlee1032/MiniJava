@@ -2,6 +2,18 @@ PARSER_BEGIN(MiniParser)
     class MiniParser {}
 PARSER_END(MiniParser)
 
+TOKEN:{
+<INT:"int">
+|<BOOL:"boolean">
+|<NEW:"new">
+|<ELSE:"else">
+|<TRUE:"true">
+|<THIS:"this">
+|<CLASS:"class">
+|<PUBLIC:"public">
+|<RETURN:"return">
+|<EXTENDS:"extends">
+}
 TOKEN:{<IDEN:<CHARACTER>(<CHARACTER>|<DIGIT>|"_")*>}
 TOKEN:{<#CHARACTER:["a"-"z","A"-"Z"]>}
 TOKEN:{<DIGIT:["0"-"9"]>}
@@ -34,7 +46,7 @@ void VarDecl():
 
 void MethodDecl():
 {}
-{"public" Type() <IDEN> "("FormalList()")" "{"(VarDecl())* (Statement())* "return" Exp()";""}"}
+{<PUBLIC> Type() <IDEN> "("FormalList()")" "{"(LOOKAHEAD(2) VarDecl())* (Statement())* <RETURN> Exp()";""}"}
 
 void FormalList():
 {}
@@ -47,8 +59,8 @@ void FormalRest():
 void Type():
 {}
 {"int []"
-|"boolean"
-|"int"
+|<BOOL>
+|<INT>
 |<IDEN>
 }
 
@@ -58,7 +70,7 @@ void Statement():
 |"if (" Exp() ")" Statement() "else" Statement()
 |"while (" Exp() ")" Statement()
 |"System.out.println (" Exp() ");"
-|<IDEN> "=" Exp() ";"
+|LOOKAHEAD(2) <IDEN> "=" Exp() ";"
 |<IDEN>"["Exp()"] =" Exp()";"}
 
 void op():
@@ -72,10 +84,10 @@ void op():
 void Exp():
 {}
 {<DIGIT> ExpPrime()
-|"true" ExpPrime()
-|"false" ExpPrime()
+|<TRUE> ExpPrime()
+|<ELSE> ExpPrime()
 |<IDEN> ExpPrime()
-|"this" ExpPrime()
+|<THIS> ExpPrime()
 |"new int ["Exp()"]" ExpPrime()
 |"new" <IDEN> "()" ExpPrime()
 |"!"Exp() ExpPrime()
