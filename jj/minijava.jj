@@ -2,6 +2,7 @@ PARSER_BEGIN(MiniParser)
     class MiniParser {}
 PARSER_END(MiniParser)
 
+SKIP:{" " | "\r" | "\n" | "\r\n"}
 TOKEN:{
 <INT:"int">
 |<BOOL:"boolean">
@@ -69,7 +70,7 @@ void Statement():
 {"{"(Statement())*"}"
 |"if (" Exp() ")" Statement() "else" Statement()
 |"while (" Exp() ")" Statement()
-|"System.out.println (" Exp() ");"
+|"System.out.println(" Exp() ");"
 |LOOKAHEAD(2) <IDEN> "=" Exp() ";"
 |<IDEN>"["Exp()"] =" Exp()";"}
 
@@ -83,15 +84,15 @@ void op():
 
 void Exp():
 {}
-{<DIGIT> ExpPrime()
-|<TRUE> ExpPrime()
-|<ELSE> ExpPrime()
-|<IDEN> ExpPrime()
-|<THIS> ExpPrime()
-|"new int ["Exp()"]" ExpPrime()
-|"new" <IDEN> "()" ExpPrime()
-|"!"Exp() ExpPrime()
-|"("Exp()")" ExpPrime()}
+{(<DIGIT>)+ [LOOKAHEAD(1) ExpPrime()]
+|<TRUE> [LOOKAHEAD(1) ExpPrime()]
+|<ELSE> [LOOKAHEAD(1) ExpPrime()]
+|<IDEN> [LOOKAHEAD(1) ExpPrime()]
+|<THIS> [LOOKAHEAD(1) ExpPrime()]
+|"new int ["Exp()"]" [LOOKAHEAD(1) ExpPrime()]
+|"new" <IDEN> "()" [LOOKAHEAD(1) ExpPrime()]
+|"!"Exp() [LOOKAHEAD(1) ExpPrime()]
+|"("Exp()")" [LOOKAHEAD(1) ExpPrime()]}
 
 void ExpPrime():
 {}
@@ -99,7 +100,7 @@ void ExpPrime():
 |"["Exp()"]" ExpPrime()
 |".length"ExpPrime()
 |"."<IDEN>"("ExpList()")"ExpPrime()
-|""}
+}
 
 void ExpList():
 {}
