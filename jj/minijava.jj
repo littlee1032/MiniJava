@@ -28,6 +28,8 @@ TOKEN:{<#RETCH:"\r"|"\n"|"\r\n">}
 
 TOKEN:{<COMMENT:"//"(<OTHER>)*<RETCH> | "/*"(<OTHER>)*"*/">}
 
+TOKEN:{<COMMA:";">}
+
 void Prog():
 {}
 {MainClass() (ClassDecl())* }
@@ -43,11 +45,11 @@ void ClassDecl():
 
 void VarDecl():
 {}
-{Type() <IDEN>";"}
+{Type() <IDEN> <COMMA>}
 
 void MethodDecl():
 {}
-{<PUBLIC> Type() <IDEN> "("FormalList()")" "{"(LOOKAHEAD(2) VarDecl())* (Statement())* <RETURN> Exp()";""}"}
+{<PUBLIC> Type() <IDEN> "("FormalList()")" "{"(LOOKAHEAD(2) VarDecl())* (Statement())* <RETURN> Exp() <COMMA> "}"}
 
 void FormalList():
 {}
@@ -70,9 +72,9 @@ void Statement():
 {"{"(Statement())*"}"
 |"if (" Exp() ")" Statement() "else" Statement()
 |"while (" Exp() ")" Statement()
-|"System.out.println(" Exp() ");"
-|LOOKAHEAD(2) <IDEN> "=" Exp() ";"
-|<IDEN>"["Exp()"] =" Exp()";"}
+|"System.out.println(" Exp() ")" <COMMA>
+|LOOKAHEAD(2) <IDEN> "=" Exp() <COMMA>
+|<IDEN>"["Exp()"] =" Exp() <COMMA>}
 
 void op():
 {}
@@ -84,22 +86,22 @@ void op():
 
 void Exp():
 {}
-{(<DIGIT>)+ [LOOKAHEAD(1) ExpPrime()]
-|<TRUE> [LOOKAHEAD(1) ExpPrime()]
-|<ELSE> [LOOKAHEAD(1) ExpPrime()]
-|<IDEN> [LOOKAHEAD(1) ExpPrime()]
-|<THIS> [LOOKAHEAD(1) ExpPrime()]
-|"new int ["Exp()"]" [LOOKAHEAD(1) ExpPrime()]
-|"new" <IDEN> "()" [LOOKAHEAD(1) ExpPrime()]
-|"!"Exp() [LOOKAHEAD(1) ExpPrime()]
-|"("Exp()")" [LOOKAHEAD(1) ExpPrime()]}
+{(<DIGIT>)+ (LOOKAHEAD(1) ExpPrime())?
+|<TRUE> (LOOKAHEAD(1) ExpPrime())?
+|<ELSE> (LOOKAHEAD(1) ExpPrime())?
+|<IDEN> (LOOKAHEAD(1) ExpPrime())?
+|<THIS> (LOOKAHEAD(1) ExpPrime())?
+|"new int ["Exp()"]" (LOOKAHEAD(1) ExpPrime())?
+|"new" <IDEN> "()" (LOOKAHEAD(1) ExpPrime())?
+|"!"Exp() (LOOKAHEAD(1) ExpPrime())?
+|"("Exp()")" (LOOKAHEAD(1) ExpPrime())?}
 
 void ExpPrime():
 {}
-{op() Exp() ExpPrime()
-|"["Exp()"]" ExpPrime()
-|".length"ExpPrime()
-|"."<IDEN>"("ExpList()")"ExpPrime()
+{op() Exp() (LOOKAHEAD(1) ExpPrime())?
+|"["Exp()"]" (LOOKAHEAD(1) ExpPrime())?
+|".length" (LOOKAHEAD(1) ExpPrime())?
+|"." <IDEN> "("ExpList()")" (LOOKAHEAD(1) ExpPrime())?
 }
 
 void ExpList():
@@ -108,4 +110,4 @@ void ExpList():
 
 void ExpRest():
 {}
-{" ,"Exp()}
+{" ," Exp()}
