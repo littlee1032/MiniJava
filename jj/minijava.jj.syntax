@@ -1,0 +1,301 @@
+PARSER_BEGIN(MiniParser)
+    class MiniParser {}
+PARSER_END(MiniParser)
+
+SKIP:{" " | "\r" | "\n" | "\r\n"}
+TOKEN:{
+<INT:"int">
+|<BOOL:"boolean">
+|<NEW:"new">
+|<ELSE:"else">
+|<THIS:"this">
+|<CLASS:"class">
+|<PUBLIC:"public">
+|<RETURN:"return">
+|<EXTENDS:"extends">
+|<TRUE:"true">
+|<FALSE:"false">
+}
+TOKEN:{<IDEN:<CHARACTER>(<CHARACTER>|<DIGIT>|"_")*>}
+TOKEN:{<#CHARACTER:["a"-"z","A"-"Z"]>}
+TOKEN:{<DIGIT:["0"-"9"]>}
+TOKEN:{<AND:"&&">}
+TOKEN:{<LESS:"<">}
+TOKEN:{<PLUS:"+">}
+TOKEN:{<MINUS:"-">}
+TOKEN:{<TIMES:"*">}
+TOKEN:{<#OTHER:~[]>}
+TOKEN:{<#RETCH:"\r"|"\n"|"\r\n">}
+TOKEN:{<DIGITALLITERAL:(<DIGIT>)+>}
+
+TOKEN:{<COMMENT:"//"(<OTHER>)*<RETCH> | "/*"(<OTHER>)*"*/">}
+
+TOKEN:{<COMMA:";">}
+
+void Prog():
+{syntaxtree.MainClass m; syntaxtree.ClassDeclList cdl;}
+{m=MainClass()
+    {cdl=new syntaxtree.ClassDeclList();
+     syntaxtree.ClassDecl cd;}
+    (
+     cd=ClassDecl()
+     {cdl.addElement(cd);}
+    )*
+    {return new syntaxtree.Program(m, cdl);}
+}
+
+void MainClass():
+{syntaxtree.Identifier className; syntaxtree.Identifier args; syntaxtree.Statement stm;}
+{"class" className=<IDEN> "{" "public static void main" "(String[]" args=<IDEN> ")" "{" stm=Statement() "}""}"
+    {return new syntaxtree.MainClass(classname, args, stm);}
+}
+
+void ClassDecl():
+{
+    syntaxtree.Identifier className;
+    syntaxtree.VarDeclList vdl;
+    syntaxtree.MethodDeclList mdl;
+    syntaxtree.Identifier parentName;
+    syntaxtree.VarDecl vd;
+    syntaxtree.MethodDecl md;
+}
+{LOOKAHEAD(3) "class" className=<IDEN> "{"
+    {
+        vdl = new syntaxtree.VarDeclList();
+        mdl = new syntaxtree.MethodDeclList();
+    }
+    (
+        vd = VarDecl()
+        {vdl.addElement(vd);}
+    )*
+    (
+        md = MethodDecl()
+        {mdl.addElement(md);}
+    )*"}"
+    {return new syntaxtree.ClassDeclSimple(className, vdl, mdl);}
+|
+    "class" className=<IDEN> "extends" parentName=<IDEN> "{"
+    {
+        vdl = new syntaxtree.VarDeclList();
+        mdl = new syntaxtree.MethodDeclList();
+    }
+    (
+        vd = VarDecl()
+        {vdl.addElement(vd);}
+    )*
+    (
+        md = MethodDecl()
+        {mdl.addElement(md);}
+    )*"}"
+    {return new syntaxtree.ClassDeclExtends(className, parentName, vdl, mdl);}
+}
+
+void VarDecl():
+{
+    syntaxtree.Type type;
+    syntaxtree.Identifier iden;
+}
+{
+    type=Type() iden=<IDEN> <COMMA>
+    {return new syntaxtree.VarDecl(type, iden);}
+}
+
+void MethodDecl():
+{
+    syntaxtree.Type type;
+    syntaxtree.Identifier methodName;
+    syntaxtree.FormalList fl;
+    syntaxtree.VarDeclList vdl;
+    syntaxtree.StatementList stl;
+    syntaxtree.Exp exp;
+}
+{<PUBLIC> type=Type() methodName=<IDEN> "("fl=FormalList()")" "{"
+    {
+        syntaxtree.VarDecl vd;
+        vdl = new syntaxtree.VarDeclList();
+    }
+    (LOOKAHEAD(2)
+        vd=VarDecl()
+        {vdl.addElement(vd);}
+    )*
+    {
+        syntaxtree.Statement st;
+        stl = new syntaxtree.StatementList();
+    }
+    (
+        st=Statement()
+        {stl.addElement(st);}
+    )*
+    <RETURN>
+    exp=Exp()
+    <COMMA> "}"
+    {return new syntaxtree.MethodDecl(type, methodName, fl, vdl, stl, exp);}
+}
+
+void FormalList():
+{
+    syntaxtree.FormalList fl;
+}
+{
+    {
+        syntaxtree.Formal f;
+        fl = new syntaxtree.FormalList();
+    }
+    f=Formal()
+    {fl.addElement(f);}
+    ("," f=Formal()
+        {fl.addElement(f);}
+    )*
+    {return fl;}
+}
+
+void Formal():
+{
+    syntaxtree.Type type;
+    syntaxtree.Identifier iden;
+}
+{type=Type() iden=<IDEN>
+    {return new Formal(type, iden);}
+}
+
+void Type():
+{Token t;}
+{"int []" {return new syntaxtree.IntArrayType();}
+|<BOOL> {return new syntaxtree.BooleanType();}
+|<INT> {return new syntaxtree.IntType();}
+|t=<IDEN> {return new syntaxtree.IdentifierType(t.image);}
+}
+
+void Statement():
+{
+    syntaxtree.StatementList stl = new syntaxtree.StatementList();
+    syntaxtree.Statement st;
+    syntaxtree.Exp exp,idx;
+    syntaxtree.Statement trueSt,elseSt;
+    syntaxtree.Identifier iden;
+}
+{"{"
+    (
+        st=Statement()
+        {stl.addElement(st);}
+    )*
+"}"
+    {return new syntaxtree.Block(stl);}
+|"if (" exp=Exp() ")" trueSt=Statement() "else" elseSt=Statement()
+    {return new syntaxtree.If(exp, trueSt, elseSt);}
+|"while (" exp=Exp() ")" st=Statement()
+    {return new syntaxtree.While(exp, st);}
+|"System.out.println(" exp=Exp() ")" <COMMA>
+    {return new syntaxtree.Print(exp);}
+|LOOKAHEAD(2) iden=<IDEN> "=" exp=Exp() <COMMA>
+    {return new syntaxtree.Assign(iden, exp);}
+|iden=<IDEN>"["idx=Exp()"] =" exp=Exp() <COMMA>
+    {return new syntaxtree.ArrayAssign(iden, idx, exp);}
+}
+
+void Exp():
+{
+    syntaxtree.Exp exp1,exp2;
+    syntaxtree.Identifier iden;
+    syntaxtree.ExpList el;
+    Token t;
+}
+{ LOOKAHEAD(2) exp1=SubExp() "+" exp2=SubExp()
+    {return new syntaxtree.Plus(exp1, exp2);}
+| LOOKAHEAD(2) exp1=SubExp() "-" exp2=SubExp()
+    {return new syntaxtree.Minux(exp1, exp2);}
+| LOOKAHEAD(2) exp1=SubExp() "&&" exp2=SubExp()
+    {return new syntaxtree.And(exp1, exp2);}
+| LOOKAHEAD(2) exp1=SubExp() "<" exp2=SubExp()
+    {return new syntaxtree.LessThan(exp1, exp2);}
+| LOOKAHEAD(2) exp1=SubExp() "*" exp2=SubExp()
+    {return new syntaxtree.Times(exp1, exp2);}
+| LOOKAHEAD(2) exp1=SubExp() "[" exp2=SubExp() "]"
+    {return new syntaxtree.ArrayLookup(exp1, exp2);}
+| LOOKAHEAD(2) exp1=SubExp() ".length"
+    {return new syntaxtree.ArrayLen(exp1);}
+| LOOKAHEAD(2) exp1=SubExp() "." iden=<IDEN> "(" el=ExpList() ")"
+    {return new syntaxtree.Call(exp1, iden, el);}
+}
+
+void SubExp():
+{
+    syntaxtree.Exp exp1,exp2;
+    syntaxtree.Identifier iden;
+    syntaxtree.ExpList el;
+    Token t;
+}
+{
+    t=<DIGITALLITERAL>
+    {return new syntaxtree.IntegerLiteral(Integer.valueOf(t.image));}
+| <TRUE>
+    {return new syntaxtree.True();}
+| <FALSE>
+    {return new syntaxtree.False();}
+| t=<IDEN>
+    {return new syntaxtree.IdentifierExp(t.image);}
+| <THIS>
+    {return new syntaxtree.This();}
+| "new int [" exp1=Exp() "]"
+    {return new syntaxtree.NewArray(exp1);}
+| "new" iden=<IDEN> "()"
+    {return new syntaxtree.NewObject(iden);}
+| "!" exp1=Exp()
+    {return new syntaxtree.Not(exp1);}
+| "(" exp1=Exp() ")"
+    {return exp1;}
+}
+
+/*
+#void op():
+#{}
+#{<AND>
+#|<LESS>
+#|<PLUS>
+#|<MINUS>
+#|<TIMES>}
+
+#void Exp():
+#{}
+#{(<DIGIT>)+ (LOOKAHEAD(1) ExpPrime())?
+#|<TRUE> (LOOKAHEAD(1) ExpPrime())?
+#|<ELSE> (LOOKAHEAD(1) ExpPrime())?
+#|<IDEN> (LOOKAHEAD(1) ExpPrime())?
+#|<THIS> (LOOKAHEAD(1) ExpPrime())?
+#|"new int ["Exp()"]" (LOOKAHEAD(1) ExpPrime())?
+#|"new" <IDEN> "()" (LOOKAHEAD(1) ExpPrime())?
+#|"!"Exp() (LOOKAHEAD(1) ExpPrime())?
+#|"("Exp()")" (LOOKAHEAD(1) ExpPrime())?}
+
+#void ExpPrime():
+#{}
+#{op() Exp() (LOOKAHEAD(1) ExpPrime())?
+#|"["Exp()"]" (LOOKAHEAD(1) ExpPrime())?
+#|".length" (LOOKAHEAD(1) ExpPrime())?
+#|"." <IDEN> "("ExpList()")" (LOOKAHEAD(1) ExpPrime())?
+#}
+*/
+
+void ExpList():
+{
+    syntaxtree.ExpList el = new syntaxtree.ExpList();
+    syntaxtree.Exp exp;
+}
+{
+    exp=Exp()
+    {el.addElement(exp);}
+    ("," exp=Exp()
+        {el.addElement(exp);}
+    )*
+    {return el;}
+}
+
+/*
+#void ExpList():
+#{}
+#{Exp() (ExpRest())*}
+
+#void ExpRest():
+#{}
+#{" ," Exp()}
+*/
